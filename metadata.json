@@ -1,0 +1,6 @@
+{
+  "name": "Sổ Theo Dõi Lớp",
+  "description": "Ứng dụng quản lý nề nếp, điểm danh học sinh vắng, kiểm tra vệ sinh Tiết 1-2 và thiết bị 24 phòng học đồng bộ qua Firebase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

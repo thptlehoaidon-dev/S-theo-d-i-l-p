@@ -1,0 +1,185 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidSchool(data) {
+      return data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 500 &&
+             (data.memberUids[0] is string) &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidDevicesMap(devices) {
+      return devices is map &&
+             devices.keys().hasAll(['lamp1', 'lamp2', 'lamp3', 'lamp4', 'fan1', 'fan2', 'tv', 'wifi']) &&
+             devices.keys().hasOnly(['lamp1', 'lamp2', 'lamp3', 'lamp4', 'fan1', 'fan2', 'tv', 'wifi']) &&
+             devices.lamp1 in ['GOOD', 'BROKEN'] &&
+             devices.lamp2 in ['GOOD', 'BROKEN'] &&
+             devices.lamp3 in ['GOOD', 'BROKEN'] &&
+             devices.lamp4 in ['GOOD', 'BROKEN'] &&
+             devices.fan1 in ['GOOD', 'BROKEN'] &&
+             devices.fan2 in ['GOOD', 'BROKEN'] &&
+             devices.tv in ['GOOD', 'BROKEN'] &&
+             devices.wifi in ['GOOD', 'BROKEN'];
+    }
+
+    function isValidRoom(data) {
+      return data.schoolId is string && isValidId(data.schoolId) &&
+             data.floor is int && data.floor >= 1 && data.floor <= 3 &&
+             data.className is string && data.className.size() >= 1 && data.className.size() <= 20 &&
+             data.roomCode is string && data.roomCode.size() >= 1 && data.roomCode.size() <= 20 &&
+             data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 500 &&
+             (data.memberUids[0] is string) &&
+             data.reportDate is string && data.reportDate.size() == 10 &&
+             data.absences is list && data.absences.size() <= 60 &&
+             (data.absences.size() == 0 || (
+               data.absences[0] is map &&
+               data.absences[0].keys().hasAll(['studentName', 'absenceType', 'reason']) &&
+               data.absences[0].keys().hasOnly(['studentName', 'absenceType', 'reason']) &&
+               data.absences[0].studentName is string && data.absences[0].studentName.size() >= 1 && data.absences[0].studentName.size() <= 80 &&
+               data.absences[0].absenceType in ['CO_PHEP', 'KHONG_PHEP', 'DI_MUON'] &&
+               data.absences[0].reason is string && data.absences[0].reason.size() <= 200
+             )) &&
+             data.hygieneStatus in ['CHUA_KIEM_TRA', 'SACH_SE', 'CAN_NHAC_NHO'] &&
+             data.hygieneTimeText is string && data.hygieneTimeText.size() <= 10 &&
+             data.hygieneOnTime is bool &&
+             data.hygieneNote is string && data.hygieneNote.size() <= 300 &&
+             data.hygieneChecker is string && data.hygieneChecker.size() <= 80 &&
+             data.hygieneFloorClean is bool &&
+             data.hygieneBoardClean is bool &&
+             data.hygieneBinEmptied is bool &&
+             isValidDevicesMap(data.devices) &&
+             data.deviceNote is string && data.deviceNote.size() <= 300 &&
+             data.deviceConfirmedBy is string && data.deviceConfirmedBy.size() <= 80 &&
+             data.deviceConfirmedAtText is string && data.deviceConfirmedAtText.size() <= 10 &&
+             data.rolePin is string && data.rolePin.matches('^[0-9]{4}$') &&
+             data.rolePattern is string && data.rolePattern.size() >= 3 && data.rolePattern.size() <= 30 &&
+             data.updatedByUid is string && data.updatedByUid.size() >= 1 && data.updatedByUid.size() <= 128 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function roomHasExactRequiredKeys(data) {
+      return data.keys().hasAll([
+        'schoolId', 'floor', 'className', 'roomCode', 'memberUids',
+        'reportDate', 'absences', 'hygieneStatus', 'hygieneTimeText',
+        'hygieneOnTime', 'hygieneNote', 'hygieneChecker',
+        'hygieneFloorClean', 'hygieneBoardClean', 'hygieneBinEmptied',
+        'devices', 'deviceNote', 'deviceConfirmedBy', 'deviceConfirmedAtText',
+        'rolePin', 'rolePattern', 'updatedByUid', 'createdAt', 'updatedAt'
+      ]) && data.keys().hasOnly([
+        'schoolId', 'floor', 'className', 'roomCode', 'memberUids',
+        'reportDate', 'absences', 'hygieneStatus', 'hygieneTimeText',
+        'hygieneOnTime', 'hygieneNote', 'hygieneChecker',
+        'hygieneFloorClean', 'hygieneBoardClean', 'hygieneBinEmptied',
+        'devices', 'deviceNote', 'deviceConfirmedBy', 'deviceConfirmedAtText',
+        'rolePin', 'rolePattern', 'updatedByUid', 'createdAt', 'updatedAt'
+      ]);
+    }
+
+    match /schools/{schoolId} {
+      allow get: if isSignedIn() && isValidId(schoolId) &&
+                    (request.auth.uid in existing().memberUids || schoolId == 'thpt_main');
+      allow list: if isSignedIn() && request.auth.uid in resource.data.memberUids;
+
+      allow create: if isSignedIn() && isValidId(schoolId) &&
+                       incoming().keys().hasAll(['name', 'memberUids', 'createdByUid', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['name', 'memberUids', 'createdByUid', 'createdAt', 'updatedAt']) &&
+                       isValidSchool(incoming()) &&
+                       incoming().createdByUid == request.auth.uid &&
+                       request.auth.uid in incoming().memberUids;
+
+      allow update: if isSignedIn() && isValidId(schoolId) &&
+                       isValidSchool(incoming()) &&
+                       incoming().createdByUid == existing().createdByUid &&
+                       incoming().createdAt == existing().createdAt && (
+                         (
+                           request.auth.uid in incoming().memberUids &&
+                           incoming().memberUids.hasAll(existing().memberUids) &&
+                           incoming().memberUids.size() <= existing().memberUids.size() + 1 &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'updatedAt'])
+                         ) || (
+                           request.auth.uid in existing().memberUids &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt'])
+                         )
+                       );
+
+      allow delete: if false;
+
+      match /rooms/{roomId} {
+        allow get: if isSignedIn() && isValidId(schoolId) && isValidId(roomId) &&
+                      request.auth.uid in existing().memberUids;
+        allow list: if isSignedIn() && request.auth.uid in resource.data.memberUids;
+
+        allow create: if isSignedIn() && isValidId(schoolId) && isValidId(roomId) &&
+                         roomHasExactRequiredKeys(incoming()) &&
+                         isValidRoom(incoming()) &&
+                         incoming().schoolId == schoolId &&
+                         incoming().updatedByUid == request.auth.uid &&
+                         request.auth.uid in incoming().memberUids &&
+                         existsAfter(/databases/$(database)/documents/schools/$(schoolId));
+
+        allow update: if isSignedIn() && isValidId(schoolId) && isValidId(roomId) &&
+                         isValidRoom(incoming()) &&
+                         incoming().schoolId == existing().schoolId &&
+                         incoming().floor == existing().floor &&
+                         incoming().className == existing().className &&
+                         incoming().roomCode == existing().roomCode &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedByUid == request.auth.uid && (
+                           (
+                             request.auth.uid in incoming().memberUids &&
+                             incoming().memberUids.hasAll(existing().memberUids) &&
+                             incoming().memberUids.size() <= existing().memberUids.size() + 1 &&
+                             exists(/databases/$(database)/documents/schools/$(schoolId)) &&
+                             request.auth.uid in get(/databases/$(database)/documents/schools/$(schoolId)).data.memberUids &&
+                             incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'updatedByUid', 'updatedAt'])
+                           ) || (
+                             request.auth.uid in existing().memberUids &&
+                             incoming().memberUids == existing().memberUids && (
+                               incoming().diff(existing()).affectedKeys().hasOnly([
+                                 'reportDate', 'absences', 'updatedByUid', 'updatedAt'
+                               ]) ||
+                               incoming().diff(existing()).affectedKeys().hasOnly([
+                                 'reportDate', 'hygieneStatus', 'hygieneTimeText', 'hygieneOnTime',
+                                 'hygieneNote', 'hygieneChecker', 'hygieneFloorClean',
+                                 'hygieneBoardClean', 'hygieneBinEmptied', 'updatedByUid', 'updatedAt'
+                               ]) ||
+                               incoming().diff(existing()).affectedKeys().hasOnly([
+                                 'devices', 'deviceNote', 'deviceConfirmedBy', 'deviceConfirmedAtText',
+                                 'updatedByUid', 'updatedAt'
+                               ]) ||
+                               incoming().diff(existing()).affectedKeys().hasOnly([
+                                 'rolePin', 'rolePattern', 'updatedByUid', 'updatedAt'
+                               ])
+                             )
+                           )
+                         );
+
+        allow delete: if false;
+      }
+    }
+  }
+}

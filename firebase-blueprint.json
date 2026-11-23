@@ -1,0 +1,176 @@
+{
+  "entities": {
+    "School": {
+      "title": "School",
+      "description": "Shared school workspace holding authorized member UIDs for the 24-classroom monitor.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name of the school building."
+        },
+        "memberUids": {
+          "type": "array",
+          "description": "UIDs of authenticated Google users belonging to this school."
+        },
+        "createdByUid": {
+          "type": "string",
+          "description": "UID of the user who initialized the school workspace."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written with FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written with FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["name", "memberUids", "createdByUid", "createdAt", "updatedAt"]
+    },
+    "ClassroomRoom": {
+      "title": "ClassroomRoom",
+      "description": "State of one of the 24 classrooms (3 floors x 8 classes) including daily absences, Period 1-2 hygiene report, and 8 room devices.",
+      "type": "object",
+      "properties": {
+        "schoolId": {
+          "type": "string",
+          "description": "Parent school document ID."
+        },
+        "floor": {
+          "type": "integer",
+          "description": "Floor number (1, 2, or 3)."
+        },
+        "className": {
+          "type": "string",
+          "description": "Class name such as 10A1 or 12A8."
+        },
+        "roomCode": {
+          "type": "string",
+          "description": "Physical room number such as P.101 or P.308."
+        },
+        "memberUids": {
+          "type": "array",
+          "description": "Denormalized member UIDs matching the parent school."
+        },
+        "reportDate": {
+          "type": "string",
+          "description": "Date string YYYY-MM-DD for daily absence and hygiene reset."
+        },
+        "absences": {
+          "type": "array",
+          "description": "Bounded list of absent students with absenceType and reason."
+        },
+        "hygieneStatus": {
+          "type": "string",
+          "enum": ["CHUA_KIEM_TRA", "SACH_SE", "CAN_NHAC_NHO"],
+          "description": "Daily classroom hygiene status."
+        },
+        "hygieneTimeText": {
+          "type": "string",
+          "description": "HH:mm timestamp text when hygiene report was submitted."
+        },
+        "hygieneOnTime": {
+          "type": "boolean",
+          "description": "Whether the hygiene inspection occurred during 07:00-08:35."
+        },
+        "hygieneNote": {
+          "type": "string",
+          "description": "Notes from the duty student team."
+        },
+        "hygieneChecker": {
+          "type": "string",
+          "description": "Role label of the checker."
+        },
+        "hygieneFloorClean": {
+          "type": "boolean",
+          "description": "Checklist item: floor and hallway clean."
+        },
+        "hygieneBoardClean": {
+          "type": "boolean",
+          "description": "Checklist item: board wiped and desks aligned."
+        },
+        "hygieneBinEmptied": {
+          "type": "boolean",
+          "description": "Checklist item: trash bin emptied."
+        },
+        "devices": {
+          "type": "object",
+          "description": "Status map (GOOD or BROKEN) for lamp1..4, fan1..2, tv, wifi."
+        },
+        "deviceNote": {
+          "type": "string",
+          "description": "Notes describing broken equipment."
+        },
+        "deviceConfirmedBy": {
+          "type": "string",
+          "description": "Monitor account label confirming device state, or empty if unconfirmed."
+        },
+        "deviceConfirmedAtText": {
+          "type": "string",
+          "description": "HH:mm time when class monitor confirmed device status."
+        },
+        "rolePin": {
+          "type": "string",
+          "description": "4-digit role PIN for quick class verification."
+        },
+        "rolePattern": {
+          "type": "string",
+          "description": "Dash-delimited 3x3 Android pattern sequence for quick class verification."
+        },
+        "updatedByUid": {
+          "type": "string",
+          "description": "UID of the authenticated Google user who last wrote this document."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written with FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written with FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "schoolId",
+        "floor",
+        "className",
+        "roomCode",
+        "memberUids",
+        "reportDate",
+        "absences",
+        "hygieneStatus",
+        "hygieneTimeText",
+        "hygieneOnTime",
+        "hygieneNote",
+        "hygieneChecker",
+        "hygieneFloorClean",
+        "hygieneBoardClean",
+        "hygieneBinEmptied",
+        "devices",
+        "deviceNote",
+        "deviceConfirmedBy",
+        "deviceConfirmedAtText",
+        "rolePin",
+        "rolePattern",
+        "updatedByUid",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/schools/{schoolId}": {
+      "schema": { "$ref": "#/entities/School" },
+      "description": "School workspace metadata and authorized member UIDs."
+    },
+    "/schools/{schoolId}/rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/ClassroomRoom" },
+      "description": "24 classroom tracking documents across 3 floors."
+    }
+  }
+}

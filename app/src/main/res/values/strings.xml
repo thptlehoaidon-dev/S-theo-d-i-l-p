@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Sổ Theo Dõi Lớp</string>
+    <string name="school_header_title">SỔ THEO DÕI TOÀN TRƯỜNG</string>
+    <string name="duty_window_badge">Giờ trực: 07:00 - 08:35</string>
+    <string name="duty_window_active">Đang trong giờ trực (07:00 - 08:35)</string>
+    <string name="tab_public_label">Theo dõi chung</string>
+    <string name="tab_report_label">Báo cáo / XN</string>
+    <string name="auth_title">Đăng nhập hệ thống trường</string>
+    <string name="auth_subtitle">Kết nối tài khoản Google để đồng bộ trực tiếp tình hình vắng, vệ sinh và thiết bị của 24 phòng học.</string>
+    <string name="auth_google_button">Đăng nhập bằng Google</string>
+    <string name="sign_out_label">Đăng xuất Google</string>
+</resources>
